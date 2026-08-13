@@ -226,4 +226,32 @@ const updateMe = async (req: AuthRequest, res: Response) => {
     }
 
 }
-export { register, login, getMe, updateMe }   
+const searchUsers = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: "Not authorized" });
+        }
+
+        const { q } = req.query;
+        if (!q || typeof q !== "string" || !q.trim()) {
+            return res.status(200).json([]);
+        }
+
+        const query = q.trim();
+        // Search by name or email using regex
+        const users = await User.find({
+            $or: [
+                { name: { $regex: query, $options: 'i' } },
+                { email: { $regex: query, $options: 'i' } }
+            ]
+        })
+        .select('name email avatar')
+        .limit(3);
+
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : String(error) });
+    }
+}
+
+export { register, login, getMe, updateMe, searchUsers }
